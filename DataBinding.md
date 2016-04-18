@@ -39,7 +39,7 @@ android{
 </layout>
 ```
     * **data**中的**variable**描述layout文件中需要使用的属性。
-```Xml
+    ```Xml
 <variable name="user" type="com.example.User"/>
 ```
     * 表达式使用 **@{}** 。TextView中text的内容使用了user中firstName这个属性。
