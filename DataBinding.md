@@ -133,12 +133,12 @@ android{
         </layout>
     ```
     
-    * 一些专用的点击事件的handler已经存在，需要其他属性而不是**android:onClick**从而避免冲突。如下属性已经创建出来避免冲突：
-| Class | Listener Setter     | Attribute   |
-| :----- | :----------------- | :---------- |
-| SearchView|setOnSearchClickListener(View.OnClickListener)|android:onSearchClick|
-|ZoomControls|setOnZoomInClickListener(View.OnClickListener)|android:onZoomIn|
-|ZoomControls|setOnZoomOutClickListener(View.OnClickListener)|android:onZoomOut|
+    * 一些专用的点击事件的handler已经存在，需要其他属性而不是**android:onClick**从而避免冲突。如下属性已经创建出来避免冲突：  
+    | Class | Listener Setter     | Attribute   |  
+    | :----- | :----------------- | :---------- |
+    | SearchView|setOnSearchClickListener(View.OnClickListener)|android:onSearchClick|
+    |ZoomControls|setOnZoomInClickListener(View.OnClickListener)|android:onZoomIn|
+    |ZoomControls|setOnZoomOutClickListener(View.OnClickListener)|android:onZoomOut|
 
 
 ## Layout细节
@@ -193,7 +193,7 @@ android{
     ```
    和Java一样，java.lang.* 被自动引用进来。
    
-* Variables
+* 变量
     * 任何变量都可以出现在data节点下，每个变量描述了一种属性，layout中设置的这种属性，可以在绑定表达式的时候使用。
     ```Xml
     <data>
@@ -211,61 +211,61 @@ android{
 * 自定义绑定类名
     * 一般来说，绑定的类名是基于layout名字命名的，大写开头，去掉下划线（_），下划线以后的第一个字符大写，并以“Binding”结尾。这个类，被放置于模块包名下的databinding包里面。例如，layout文件叫contact_item.xml,生成的绑定类叫ContactItemBinding。如果模块包名叫com.example.my.app,绑定类会被放在com.example.my.app.databinding下面。
     * 绑定类可以被重命名或者放置在不同的包下面，你只需要修改data节点的class属性就可以了：
-```Xml
-    <data class="ContactItem">
-    ...
-    </data>
-```
+    ```Xml
+        <data class="ContactItem">
+        ...
+        </data>
+    ```
     生成的绑定类是ContactItem，放置在模块包的databinding包下。如果绑定类需要生成在模块包的不同包里，需要加上“.”前缀：
-```Xml
-    <data class=".ContactItem">
-    ...
-    </data>
-```
+    ```Xml
+        <data class=".ContactItem">
+        ...
+        </data>
+    ```
     这种情况下哎，ContactItem直接生成在模块包下。如果class属性写上了包名全称，那么任何包都可以使用：
-```Xml
-    <data class="com.example.ContactItem">
-    ...
-    </data>
-```
+    ```Xml
+        <data class="com.example.ContactItem">
+        ...
+        </data>
+    ```
 
 * Includes
     * 如果变量使用应用程序命名空间和属性变量名，那么它还可以被传递到View节点下的include中。
-```Xml
+    ```Xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <layout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:bind="http://schemas.android.com/apk/res-auto">
+           <data>
+               <variable name="user" type="com.example.User"/>
+           </data>
+           <LinearLayout
+               android:orientation="vertical"
+               android:layout_width="match_parent"
+               android:layout_height="match_parent">
+               <include layout="@layout/name"
+                   bind:user="@{user}"/>
+               <include layout="@layout/contact"
+                   bind:user="@{user}"/>
+           </LinearLayout>
+        </layout>
+    ```  
+    此处，name.xml和contact.xml中必须都有user变量。  
+    Data Binding不支持include直接作为merge节点的子节点，例如，如下的layout是**不支持**的：  
+    ```Xml
     <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:bind="http://schemas.android.com/apk/res-auto">
-   <data>
-       <variable name="user" type="com.example.User"/>
-   </data>
-   <LinearLayout
-       android:orientation="vertical"
-       android:layout_width="match_parent"
-       android:layout_height="match_parent">
-       <include layout="@layout/name"
-           bind:user="@{user}"/>
-       <include layout="@layout/contact"
-           bind:user="@{user}"/>
-   </LinearLayout>
-</layout>
-```
-此处，name.xml和contact.xml中必须都有user变量。
-Data Binding不支持include直接作为merge节点的子节点，例如，如下的layout是**不支持**的：
-```Xml
-<?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:bind="http://schemas.android.com/apk/res-auto">
-   <data>
-       <variable name="user" type="com.example.User"/>
-   </data>
-   <merge>
-       <include layout="@layout/name"
-           bind:user="@{user}"/>
-       <include layout="@layout/contact"
-           bind:user="@{user}"/>
-   </merge>
-</layout>
-```
+    <layout xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:bind="http://schemas.android.com/apk/res-auto">
+       <data>
+           <variable name="user" type="com.example.User"/>
+       </data>
+       <merge>
+           <include layout="@layout/name"
+               bind:user="@{user}"/>
+           <include layout="@layout/contact"
+               bind:user="@{user}"/>
+       </merge>
+    </layout>
+    ```
 
 * Expression Language
     * 普通特性
@@ -287,9 +287,9 @@ Data Binding不支持include直接作为merge节点的子节点，例如，如�
         * 三元操作符 ?：
         * 例如：
         ```Xml
-        android:text="@{String.valueOf(index + 1)}"
-        android:visibility="@{age &lt; 13 ? View.GONE : View.VISIBLE}"
-        android:transitionName='@{"image_" + id}'
+            android:text="@{String.valueOf(index + 1)}"
+            android:visibility="@{age &lt; 13 ? View.GONE : View.VISIBLE}"
+            android:transitionName='@{"image_" + id}'
         ```
         
     * 缺少的操作符
@@ -314,24 +314,24 @@ Data Binding不支持include直接作为merge节点的子节点，例如，如�
     
     * Collections
     一般集合：数组，列表，稀疏列表和map，可以使用[]操作符方便的访问。
-```Xml
-    <data>
-    <import type="android.util.SparseArray"/>
-    <import type="java.util.Map"/>
-    <import type="java.util.List"/>
-    <variable name="list" type="List&lt;String&rt;"/>
-    <variable name="sparse" type="SparseArray&lt;String&rt;"/>
-    <variable name="map" type="Map&lt;String, String&rt;"/>
-    <variable name="index" type="int"/>
-    <variable name="key" type="String"/>
-    </data>
-    …
-    android:text="@{list[index]}"
-    …
-    android:text="@{sparse[index]}"
-    …
-    android:text="@{map[key]}"
-```
+    ```Xml
+        <data>
+        <import type="android.util.SparseArray"/>
+        <import type="java.util.Map"/>
+        <import type="java.util.List"/>
+        <variable name="list" type="List&lt;String&rt;"/>
+        <variable name="sparse" type="SparseArray&lt;String&rt;"/>
+        <variable name="map" type="Map&lt;String, String&rt;"/>
+        <variable name="index" type="int"/>
+        <variable name="key" type="String"/>
+        </data>
+        …
+        android:text="@{list[index]}"
+        …
+        android:text="@{sparse[index]}"
+        …
+        android:text="@{map[key]}"
+    ```
     
     * String常量
     当属性值使用单引用的时候，表达式使用双引用：  
