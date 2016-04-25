@@ -110,26 +110,26 @@ public class MyHandlers {
     绑定表达式可以给View设置点击listener：
     ```Xml
     <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
-   <data>
-       <variable name="handlers" type="com.example.Handlers"/>
-       <variable name="user" type="com.example.User"/>
-   </data>
-   <LinearLayout
-       android:orientation="vertical"
-       android:layout_width="match_parent"
-       android:layout_height="match_parent">
-       <TextView android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="@{user.firstName}"
-           android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/>
-       <TextView android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="@{user.lastName}"
-           android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/>
-   </LinearLayout>
-</layout>
-```
+    <layout xmlns:android="http://schemas.android.com/apk/res/android">
+       <data>
+           <variable name="handlers" type="com.example.Handlers"/>
+           <variable name="user" type="com.example.User"/>
+       </data>
+       <LinearLayout
+           android:orientation="vertical"
+           android:layout_width="match_parent"
+           android:layout_height="match_parent">
+           <TextView android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="@{user.firstName}"
+               android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/>
+           <TextView android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="@{user.lastName}"
+               android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/>
+       </LinearLayout>
+    </layout>
+    ```
     * 一些专用的点击事件的handler已经存在，需要其他属性而不是**android:onClick**从而避免冲突。如下属性已经创建出来避免冲突：
     | Class | Listener Setter   | Attribute  |
      | :----- | :----------------- | :---------- |
@@ -150,13 +150,13 @@ public class MyHandlers {
     </data>
     ```
     现在，绑定表达式中可以使用View了。
-    ```Xml
+```Xml
     <TextView
    android:text="@{user.lastName}"
    android:layout_width="wrap_content"
    android:layout_height="wrap_content"
    android:visibility="@{user.isAdult ? View.VISIBLE : View.GONE}"/>
-   ```
+```
    * 当类名冲突的时候，其中一个类要重命名为“别名”。
    ```Xml
    <import type="android.view.View"/>
