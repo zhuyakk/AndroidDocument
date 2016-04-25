@@ -134,11 +134,11 @@ android{
     ```
     
     * 一些专用的点击事件的handler已经存在，需要其他属性而不是**android:onClick**从而避免冲突。如下属性已经创建出来避免冲突：  
-    | Class | Listener Setter     | Attribute   |  
-    | :----- | :----------------- | :---------- |
-    | SearchView|setOnSearchClickListener(View.OnClickListener)|android:onSearchClick|
-    |ZoomControls|setOnZoomInClickListener(View.OnClickListener)|android:onZoomIn|
-    |ZoomControls|setOnZoomOutClickListener(View.OnClickListener)|android:onZoomOut|
+    | Class        | Listener Setter                                 | Attribute             |  
+    | :----------- | :---------------------------------------------- | :-------------------- |
+    | SearchView   | setOnSearchClickListener(View.OnClickListener)  | android:onSearchClick |
+    | ZoomControls | setOnZoomInClickListener(View.OnClickListener)  | android:onZoomIn      |
+    | ZoomControls | setOnZoomOutClickListener(View.OnClickListener) | android:onZoomOut     |
 
 
 ## Layout细节
@@ -335,33 +335,307 @@ android{
     
     * String常量
     当属性值使用单引用的时候，表达式使用双引用：  
-    `android:text='@{map["firstName"]}'`
+    `android:text='@{map["firstName"]}'`  
     属性值也可以使用双引用，这么做的话，String常量应该用 &quot;或者(`)  
-    `android:text="@{map[`firstName`}"`  
-    `android:text="@{map[&quot;firstName&quot;]}"`
+    ```Xml
+    android:text="@{map[`firstName`}"
+    android:text="@{map[&quot;firstName&quot;]}"
+    ```
     
     * 资源
+    * 一般的语法允许在表达式中访问资源：  
+    `android:padding="@{large? @dimen/largePadding : @dimen/smallPadding}"`  
+    格式string和plurals可以声明参数：  
+    ```Xml
+    android:text="@{@string/nameFormat(firstName, lastName)}"
+    android:text="@{@plurals/banana(bananaCount)}"
+    ```
+    * 当plural有多个参数的时候，所有的参数都可以传入：
+    ```Xml
+    Have an orange
+    Have %d oranges
+
+    android:text="@{@plurals/orange(orangeCount, orangeCount)}"
+    ```
+    * 一些资源需要显示的类型声明：
+    | Type	            | Normal Reference | Expression Reference |
+    | :---------------- | :--------------- | :------------------- |
+    | String[]          | @array           | @stringArray         |
+    | int[]	            | @array           | @intArray            |
+    | TypedArray    	| @array           | @typedArray          |
+    | Animator	        | @animator	       | @animator            |
+    | StateListAnimator | @animator	       | @stateListAnimator   |
+    | color int     	| @color	       | @color               |
+    | ColorStateList	| @color	       | @colorStateList      |
 
 ## Data对象
+任何普通Java对象（POJO）都能用来做数据绑定，但改变的POJO不会引发UI更新。数据绑定真正的用处在于：当数据发生改变的时候，给Data对象通知的能力。有三种不同的数据改变通知机制，Observable objects, observable fields和observable collections。  
+当任意一种observable数据对象和UI绑定，数据对象的属性发生改变，UI也会自动刷新。
+
 * Observable对象
+    完成Observable接口的类允许给这个绑定附加一个监听器，这个监听器监听绑定对象的所有改变。  
+    observable接口支持增加和移除监听器，但通知是有开发者决定的。为了使开发更容易，创建了基类BaseObservable来完成坚挺着的注册机制。当属性变化的时候，数据类接口负责通知。这是通过给getter分配一个Bindable注释，并在setter中通知来完成的。
+    ```Java
+    private static class User extends BaseObservable {
+       private String firstName;
+       private String lastName;
+       @Bindable
+       public String getFirstName() {
+           return this.firstName;
+       }
+       @Bindable
+       public String getLastName() {
+           return this.lastName;
+       }
+       public void setFirstName(String firstName) {
+           this.firstName = firstName;
+           notifyPropertyChanged(BR.firstName);
+       }
+       public void setLastName(String lastName) {
+           this.lastName = lastName;
+           notifyPropertyChanged(BR.lastName);
+       }
+    }
+    ```
+    在**编译**期间，Bindable注释在BR类文件中生成一个条目，BR类文件在模块包下。如果数据类的基类不能改变，Observable接口可以用**PropertyChangeRegistry**来有效的存储和通知监听器。
 * Observable变量
+    创建Observable类的时候，需要做一些事情，如果想要节省时间或者只有很少属性，开发者可以使用**ObservableFieldh**和类似的ObservableBoolean, ObservableByte, ObservableChar, ObservableShort, ObservableInt, ObservableLong, ObservableFloat, ObservableDouble 和 ObservableParcel。 ObservableFields是独立的Observable对象，它有自己的成员。初始版本在访问操作数的时候尽力避免装箱和拆箱，在数据类中创建一个public final的成员变量：
+    ```Java
+    private static class User {
+       public final ObservableField<String> firstName =
+           new ObservableField<>();
+       public final ObservableField<String> lastName =
+           new ObservableField<>();
+       public final ObservableInt age = new ObservableInt();
+    }
+    ```
+    就是这样！要访问这个值，使用set和get存取方法：
+    ```Java
+    user.firstName.set("Google");
+    int age = user.age.get();
+    ```
+    
 * Observable Collections
+    一些应用更多使用动态结构来处理数据。Observable collections允许通过key值访问这些数据对象。当key值是引用类型，例如String，可以用**ObservableArrayMap**。
+    ```Java
+    ObservableArrayMap<String, Object> user = new ObservableArrayMap<>();
+    user.put("firstName", "Google");
+    user.put("lastName", "Inc.");
+    user.put("age", 17);
+    ```
+    在这个layout中，可以使用String的key值来访问map。
+    ```Xml
+    <data>
+        <import type="android.databinding.ObservableMap"/>
+        <variable name="user" type="ObservableMap&lt;String, Object>"/>
+    </data>
+    …
+    <TextView
+       android:text='@{user["lastName"]}'
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    <TextView
+       android:text='@{String.valueOf(1 + (Integer)user["age"])}'
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    ```  
+    当key值是整数的时候，使用**ObservableArrayList**。
+    ```Java
+    ObservableArrayList<Object> user = new ObservableArrayList<>();
+    user.add("Google");
+    user.add("Inc.");
+    user.add(17);
+    ```  
+    layout中，使用索引访问list：
+    ```Xml
+    <data>
+        <import type="android.databinding.ObservableList"/>
+        <import type="com.example.my.app.Fields"/>
+        <variable name="user" type="ObservableList&lt;Object>"/>
+    </data>
+    …
+    <TextView
+       android:text='@{user[Fields.LAST_NAME]}'
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    <TextView
+       android:text='@{String.valueOf(1 + (Integer)user[Fields.AGE])}'
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    ```
 
 ## 生成Binding
+生成的绑定类把layout变量和layout中的View联系起来。绑定的名字和包可以自定义，生成的绑定类都继承自**ViewDataBinding**。
+
 * 创建
+    绑定应该紧跟在inflate之后以保证View层级没有影响到之前的绑定View和layout中表达式的操作。有许多方法绑定layout，最常见的是使用绑定类的静态方法。inflate方法只需要一个步骤就可以创建View层级并且绑定到类上，只使用**LayoutInflater**，传入ViewGroup也是可以的：
+    ```Java
+    MyLayoutBinding binding = MyLayoutBinding.inflate(layoutInflater);
+    MyLayoutBinding binding = MyLayoutBinding.inflate(layoutInflater, viewGroup, false);
+    ```
+    如果layout使用其他方法inflate出来了，绑定也要分开操作：  
+    `MyLayoutBinding binding = MyLayoutBinding.bind(viewRoot);`  
+    有时，开始的时候我们不能预知绑定，在这种情况下，可以使用**DataBindingUtil**绑定。
+    ```Java
+    ViewDataBinding binding = DataBindingUtil.inflate(LayoutInflater, layoutId, parent, attachToParent);
+    ViewDataBinding binding = DataBindingUtil.bindTo(viewRoot, layoutId);
+    ```
+    
 * View加ID
+    layout会为所有有ID的View生成一个public final的成员变量。绑定View层级中是单向传递的，提取有ID的View。这个机制比为多个View调用findViewById要快得多。例如：
+    ```Xml
+    <layout xmlns:android="http://schemas.android.com/apk/res/android">
+       <data>
+           <variable name="user" type="com.example.User"/>
+       </data>
+       <LinearLayout
+           android:orientation="vertical"
+           android:layout_width="match_parent"
+           android:layout_height="match_parent">
+           <TextView android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="@{user.firstName}"
+               android:id="@+id/firstName"/>
+           <TextView android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="@{user.lastName}"
+               android:id="@+id/lastName"/>
+       </LinearLayout>
+    </layout>
+    ```
+    将会生成绑定类：
+    ```Java
+    public final TextView firstName;
+    public final TextView lastName;
+    ```
+    如果没有数据绑定，ID不是必须设置的，但在代码里面访问View的时候，Id仍是必须的。
+    
 * Variables
+    每个变量都会提供存取方法：
+    ```Xml
+    <data>
+        <import type="android.graphics.drawable.Drawable"/>
+        <variable name="user"  type="com.example.User"/>
+        <variable name="image" type="Drawable"/>
+        <variable name="note"  type="String"/>
+    </data>
+    ```
+    将会在绑定中生成setters和getters。
+    ```Java
+    public abstract com.example.User getUser();
+    public abstract void setUser(com.example.User user);
+    public abstract Drawable getImage();
+    public abstract void setImage(Drawable image);
+    public abstract String getNote();
+    public abstract void setNote(String note);
+    ```
+    
 * ViewStubs
+    ViewStub和一般的View有些不同。他们开始不可见，当被设置成可见或者显示的告知要inflate出来的时候，他们inflate出来其他的layout替换掉自己。  
+    由于ViewStub实质上从View层级上消失了，绑定对象的View也必须消失并被回收。由于View是final类型的，我们使用**ViewStubProxy**对象替换ViewStub，这可以允许开发者访问ViewStub或者ViewStub inflate出来的View层级。  
+    当inflate其他的layout，必须为新的layout建立bingding。因此，ViewStubProxy必须监听ViewStub的ViewStub.OnInflateListener，并且同时建立绑定。因为只存在一个ViewStubProxy，所以允许开发者设置为它设置一个OnInflateListener并在绑定建立后调用它。
+
 * 高级Binding
     * 动态变量
+    有时，某种绑定类是不可知的。例如，一个RecyclerView.Adapter操作任意多个layout不知道绑定类是哪个。那也必须在onBindViewHolder(VH, int)中给绑定赋值。  
+    在这个例子里，所有RecyclerView的绑定有一个“item”变量，BindingHolder的getBinding方法可以返回ViewDataBinding基类。
+    ```Java
+    public void onBindViewHolder(BindingHolder holder, int position) {
+       final T item = mItems.get(position);
+       holder.getBinding().setVariable(BR.item, item);
+       holder.getBinding().executePendingBindings();
+    }
+    ```
+    
     * 直接绑定
+    当变量或者Observable改变，下一阵之前绑定也会改变。有时，绑定需要立即执行，使用**excutePendingBindings()**强制执行。
+    
     * 后台线程
+    当数据不是集合类型的时候，你可以用后台线程改变数据模型。数据绑定在执行的时候，会本地化每个变量/成员防止并发。
 
 ## 属性设置器
+当绑定值发生改变的时候，生成的绑定类必须调用View的绑定表达式的setter方法。数据绑定框架可以自定义调用哪个setter方法。
 * 自动设置器
-* 重命名设置器
-* 自定义设置器
+对一个属性来说，数据绑定想要找到set属性的方法，我们并不关注属性的命名空间，只关心属性名。  
+例如，表达式和TextView的android:text属性绑定在一起，将会寻找setText(String)方法。如果表达式返回int值，数据绑定将会寻找一个setText(int)方法。注意一定要保证表达式返回的是正确的类型，如果必要的话，进行数据转换。即使没有指定名字的属性存在，数据绑定也会工作。你可以使用数据绑定为任意setter创建属性。例如，DrawerLayout没有任何属性，但有大量的setters。你可以使用自动setters使用其中的一个：
+```Xml
+<android.support.v4.widget.DrawerLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:scrimColor="@{@color/scrim}"
+    app:drawerListener="@{fragment.drawerListener}"/>
+```
 
+* 重命名设置器
+一些属性的setters和名字不一致，对于这些方法，通过**BindingMethods**注解将属性和setter联系起来。对每个重命名的方法，必须有个类并且包含BindingMethods注解。例如，android:tint属性和setImageTintList(ColorStateList)关联，而不是setTint。
+```Java
+@BindingMethods({
+       @BindingMethod(type = "android.widget.ImageView",
+                      attribute = "android:tint",
+                      method = "setImageTintList"),
+})
+```
+由于android 框架属性已经被完成了，开发者不能重命名setters。
+
+* 自定义设置器
+    * 一些属性需要自定义绑定逻辑。例如，如果android:paddingLeft属性没有相关的setter，但是setPadding(left,top,right,bottom)存在，当属性被调用的时候，允许开发者自定义一个带有**BindingAdapter**注解的静态的Binding adapter方法，用来决定setter如何使用。
+    android属性已经已经有了BindingAdapter创建了。例如：
+    ```Java
+    @BindingAdapter("android:paddingLeft")
+    public static void setPaddingLeft(View view, int padding) {
+       view.setPadding(padding,
+                       view.getPaddingTop(),
+                       view.getPaddingRight(),
+                       view.getPaddingBottom());
+    }
+    ```
+    Binding adapter对于其他自定义类型十分重要，例如，一个自定义的加载器可以在线程外被调用来加载图片。  
+    当有冲突的时候，开发者自己创建的Binding adapter将会重写缺省的数据绑定adapter。
+    * 你也可以使用adapters接收多个参数：
+    ```Java
+    @BindingAdapter({"bind:imageUrl", "bind:error"})
+    public static void loadImage(ImageView view, String url, Drawable error) {
+       Picasso.with(view.getContext()).load(url).error(error).into(view);
+    }
+    ```
+    ```Xml
+    <ImageView app:imageUrl=“@{venue.imageUrl}”
+               app:error=“@{@drawable/venueError}”/>
+    ```
+    如果imageUrl或者error用于imageView并且imageUrl是个字串，error是一个drawable，那么adapter会被调用。
+        * 自定义命名空间在匹配的时候会被忽略
+        * 你也可以为android命名空间写adapter
+    Binding adapter方法在处理器中也可以使用旧值，使用旧值或者新值的方法应该有旧属性的所有旧值，然后才有新值。
+    ```Java
+    @BindingAdapter("android:paddingLeft")
+    public static void setPaddingLeft(View view, int oldPadding, int newPadding) {
+       if (oldPadding != newPadding) {
+           view.setPadding(newPadding,
+                           view.getPaddingTop(),
+                           view.getPaddingRight(),
+                           view.getPaddingBottom());
+       }
+    }
+    ```
+    事件处理器只能被接口或者只有一个抽象方法的抽象类使用，例如：
+    ```Java
+    @BindingAdapter("android:onLayoutChange")
+    public static void setOnLayoutChangeListener(View view, View.OnLayoutChangeListener oldValue,
+           View.OnLayoutChangeListener newValue) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            if (oldValue != null) {
+                view.removeOnLayoutChangeListener(oldValue);
+            }
+            if (newValue != null) {
+                view.addOnLayoutChangeListener(newValue);
+            }
+        }
+    }
+    ```
+    当监听器有多个方法，将会被分成多个监听器。例如，View.OnAttachStateChangeListener 有两个方法，
+    
+    
+    
 ## 转换器
 * 自定义转换器
 * Android Studio 对Data Binding的支持
