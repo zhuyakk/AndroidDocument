@@ -19,47 +19,47 @@ android{
 ## Data Binding Layout文件
 * 第一个Data Binding表达式
     * Data-binding layout文件使用**layout**作为根节点，使用**data**和**view**作为子节点，其中，view节点是非DataBinding的layout文件中的根节点。举个例子：
-```Xml
-    <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
-   <data>
-       <variable name="user" type="com.example.User"/>
-   </data>
-   <LinearLayout
-       android:orientation="vertical"
-       android:layout_width="match_parent"
-       android:layout_height="match_parent">
-       <TextView android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="@{user.firstName}"/>
-       <TextView android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="@{user.lastName}"/>
-   </LinearLayout>
-</layout>
-```
+    ```Xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <layout xmlns:android="http://schemas.android.com/apk/res/android">
+           <data>
+               <variable name="user" type="com.example.User"/>
+           </data>
+           <LinearLayout
+               android:orientation="vertical"
+               android:layout_width="match_parent"
+               android:layout_height="match_parent">
+               <TextView android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   android:text="@{user.firstName}"/>
+               <TextView android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   android:text="@{user.lastName}"/>
+           </LinearLayout>
+        </layout>
+    ```
     * **data**中的**variable**描述layout文件中需要使用的属性。
-```Xml
-<variable name="user" type="com.example.User"/>
-```
+    ```Xml
+    <variable name="user" type="com.example.User"/>
+    ```
     * 表达式使用 **@{}** 。TextView中text的内容使用了user中firstName这个属性。
-```Xml
-<TextView android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:text="@{user.firstName}"/>
-```
+    ```Xml
+    <TextView android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="@{user.firstName}"/>
+    ```
 * Data对象
     * 假设你有一个User的简单Java对象（POJO）:
-```Java
-public class User {
- public final String firstName;
- public final String lastName;
- public User(String firstName, String lastName) {
-  this.firstName = firstName;
-  this.lastName = lastName;
- }
-}
-```
+    ```Java
+    public class User {
+     public final String firstName;
+     public final String lastName;
+     public User(String firstName, String lastName) {
+      this.firstName = firstName;
+      this.lastName = lastName;
+     }
+    }
+    ```
     * 这种对象中的数据固定不变。某个数据只使用一次，并且之后再也不会改变，这种情况十分常见。我们也可以使用JavaBean的对象：
 ```Java
 public class User {
@@ -134,9 +134,7 @@ public class MyHandlers {
 | Class | Listener Setter     | Attribute   |
 | :----- | :----------------- | :---------- |
 | SearchView|setOnSearchClickListener(View.OnClickListener)|android:onSearchClick|
-| :----- | :----------------- | :---------- |
 |ZoomControls|setOnZoomInClickListener(View.OnClickListener)|android:onZoomIn|
-| :----- | :----------------- | :---------- |
 |ZoomControls|setOnZoomOutClickListener(View.OnClickListener)|android:onZoomOut|
 | :----- | :----------------- | :---------- |
 
