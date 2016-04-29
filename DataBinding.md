@@ -632,10 +632,115 @@ android{
         }
     }
     ```
-    当监听器有多个方法，将会被分成多个监听器。例如，View.OnAttachStateChangeListener 有两个方法，
+    当监听器有多个方法，将会被分成多个监听器。例如，View.OnAttachStateChangeListener 有两个方法：onViewAttachedToWindow() 和 onViewDetachedFromWindow()。我们必须为他们创建两个接口来区分属性和处理者：
+    ```Java
+    @TargetApi(VERSION_CODES.HONEYCOMB_MR1)
+    public interface OnViewDetachedFromWindow {
+        void onViewDetachedFromWindow(View v);
+    }
     
+    @TargetApi(VERSION_CODES.HONEYCOMB_MR1)
+    public interface OnViewAttachedToWindow {
+        void onViewAttachedToWindow(View v);
+    }
+    ```
+    由于改变了坚挺着也会影响到其他的，我们必须用三个不同的绑定适配器，两个分别给两个函数，第三个适用于同时适用于两个函数：
+    ```Java
+    @BindingAdapter("android:onViewAttachedToWindow")
+    public static void setListener(View view, OnViewAttachedToWindow attached) {
+        setListener(view, null, attached);
+    }
+    
+    @BindingAdapter("android:onViewDetachedFromWindow")
+    public static void setListener(View view, OnViewDetachedFromWindow detached) {
+        setListener(view, detached, null);
+    }
+    
+    @BindingAdapter({"android:onViewDetachedFromWindow", "android:onViewAttachedToWindow"})
+    public static void setListener(View view, final OnViewDetachedFromWindow detach,
+            final OnViewAttachedToWindow attach) {
+        if (VERSION.SDK_INT >= VERSION_CODES.HONEYCOMB_MR1) {
+            final OnAttachStateChangeListener newListener;
+            if (detach == null && attach == null) {
+                newListener = null;
+            } else {
+                newListener = new OnAttachStateChangeListener() {
+                    @Override
+                    public void onViewAttachedToWindow(View v) {
+                        if (attach != null) {
+                            attach.onViewAttachedToWindow(v);
+                        }
+                    }
+    
+                    @Override
+                    public void onViewDetachedFromWindow(View v) {
+                        if (detach != null) {
+                            detach.onViewDetachedFromWindow(v);
+                        }
+                    }
+                };
+            }
+            final OnAttachStateChangeListener oldListener = ListenerUtil.trackListener(view,
+                    newListener, R.id.onAttachStateChangeListener);
+            if (oldListener != null) {
+                view.removeOnAttachStateChangeListener(oldListener);
+            }
+            if (newListener != null) {
+                view.addOnAttachStateChangeListener(newListener);
+            }
+        }
+    }
+    ```
+    上面的例子比一般情况要复杂，因为View增加和移除监听器而不是为View.OnAttachStateChangeListener设置方法。android.databinding.adapters.ListenerUtil 帮助保持之前绑定者的引用，所以他们可以在binding adapter中被移除。
+    使用@TargetApi(VERSION_CODES.HONEYCOMB_MR1) 注释接口 OnViewDetachedFromWindow 和 OnViewAttachedToWindow，数据绑定的生成者知道监听器只有运行在Honeycomb MR1和新的设备上才能才可以生成。addOnAttachStateChangeListener(View.OnAttachStateChangeListener)也是。
     
     
 ## 转换器
+* 对象转换器
+    * 当绑定表达式返回一个对象的时候，将会自动重命名自定义的setter。对象会被转型成选取setter的参数。
+    * 转换使用ObservableMaps来保存数据，例如：
+    ```Xml
+    <TextView
+       android:text='@{userMap["lastName"]}'
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    ```
+    userMap返回对象，对象自动被转换成setText(CharSequence)的参数类型。如果对参数类型困惑的话，开发者应该在表达式中进行转换。
+   
 * 自定义转换器
+    * 有事转换会在特殊类型间自动新型。例如，当设置背景的时候：
+    ```Xml
+    <View
+       android:background="@{isError ? @color/red : @color/white}"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    ```
+    这里，背景使用了一个drawble，但是颜色是integer。我们期望得到Drawable但拿到的是int，int应该被转换成ColorDrawable。使用带有BindingConversion注解的静态方法完成转换：
+    ```Java
+    @BindingConversion
+    public static ColorDrawable convertColorToDrawable(int color) {
+       return new ColorDrawable(color);
+    }
+    ```
+    注意，转换应该发生在setter层，所以不允许使用混合类型：
+    ```Xml
+    <View
+       android:background="@{isError ? @drawable/error : @color/white}"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+    ```
+    
 * Android Studio 对Data Binding的支持
+    * Android Studio支持数据绑定代码中的代码编辑特征。例如，支持数据绑定表达式的如下特征：
+        * 高亮语法
+        * 标出语法错误
+        * xml代码自动完成
+        * 包括[navigation](https://www.jetbrains.com/help/idea/2016.1/navigation-in-source-code.html?origin=old_help)(比如导航到定义)和[quick documents](https://www.jetbrains.com/help/idea/2016.1/viewing-inline-documentation.html?origin=old_help)
+            * 注：数组和[generic type](https://docs.oracle.com/javase/tutorial/java/generics/types.html),例如Observable类，当没有错误的时候可能会提示错误。
+        预览面板展示数据绑定表达式的缺省值。下面的例子引用了layout xml文件中的一个节点，预览面板在textview中显示 占位缺省字符值。
+        ```Xml
+        <TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.firstName, default=PLACEHOLDER}"/>
+        ```
+        如果你需要在你的应用的设计阶段显示缺省值，你也可以使用工具属性而不是缺省表达式值，看[Designtime Layout Attributes](http://tools.android.com/tips/layout-designtime-attributes)。
