@@ -1,0 +1,7 @@
+为什么Java需要Serialization？
+
+Serialization有各种各样的坑，自动Serialization可以让类成为公共API的内部构件（javadoc坚持使用这种形式的类）
+为了让类持久化，类必须遵循这种格式，这也限制了你对类的设计，打破了封装。
+Serialization也引入了安全问题，它能够序列化任意有引用的对象，类可以访问之前无法访问的数据（通过解析拿到的字节数据）
+还有其他类似内部类不能被序列化的问题。
+让所有的类都能够Serialization也会加剧这个问题。查看[Effective Java Second Edition](http://java.sun.com/docs/books/effective/) 74节：谨慎的Implement Serializable
